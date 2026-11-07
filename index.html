@@ -33,63 +33,53 @@
 
     h1 {
       font-size: 1.5rem;
-      margin-bottom: 20px;
+      margin-bottom: 24px;
       color: #1e293b;
     }
 
     .container {
       width: 100%;
-      max-width: 1000px;
+      max-width: 900px;
       background: var(--card-bg);
       border-radius: 12px;
-      padding: 24px;
+      padding: 28px 24px;
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
-
-    .classroom {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      align-items: center;
+    }
+
+    /* 教室レイアウト（横方向に7列配置） */
+    .classroom {
+      display: flex;
+      gap: 12px;
       overflow-x: auto;
       padding-bottom: 12px;
+      justify-content: center;
+      width: 100%;
     }
 
-    .row-container {
+    .column-container {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 12px;
-    }
-
-    .row-label {
-      width: 45px;
-      font-weight: bold;
-      font-size: 0.85rem;
-      color: #64748b;
-      text-align: right;
-      flex-shrink: 0;
-    }
-
-    .row-seats {
-      display: flex;
       gap: 8px;
     }
 
-    .teacher-desk {
-      width: 60px;
-      height: 48px;
-      background-color: #e2e8f0;
-      border: 2px dashed #94a3b8;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.75rem;
+    .column-label {
       font-weight: bold;
-      color: #475569;
-      margin-right: 8px;
-      flex-shrink: 0;
+      font-size: 0.85rem;
+      color: #64748b;
+      margin-bottom: 4px;
     }
 
+    .column-seats {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* 座席セル */
     .seat {
       width: 56px;
       height: 48px;
@@ -103,6 +93,13 @@
       background-color: #fff;
       transition: all 0.2s ease;
       user-select: none;
+    }
+
+    /* 両端最後尾の空席枠 */
+    .seat.empty {
+      border: 2px dashed #e2e8f0;
+      background-color: #f8fafc;
+      opacity: 0.35;
     }
 
     .seat.active {
@@ -119,6 +116,7 @@
       justify-content: flex-end;
       align-items: center;
       gap: 16px;
+      width: 100%;
     }
 
     .btn {
@@ -172,10 +170,11 @@
   </div>
 
   <script>
-    // ★以下にご自身のGASウェブアプリURLを貼り付けてください★
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbybhuIgHVMsb0EdQC1nS3cmgRjthK9I3PmWhYrFlG65ihLagvsEXRJz60FPFZFhs4w/exec";
+    // ★発行したご自身のGASウェブアプリURLに書き換えてください★
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
 
-    const ROWS = 7;
+    const COLS = 7;
+    const ROWS = 6;
     const EXCLUDED = [4, 36, 42, 43];
     const TOTAL_NUMBERS = Array.from({ length: 44 }, (_, i) => i + 1).filter(n => !EXCLUDED.includes(n));
     let isDrawing = false;
@@ -184,43 +183,39 @@
       const classroomEl = document.getElementById('classroom');
       classroomEl.innerHTML = '';
 
-      for (let r = 1; r <= ROWS; r++) {
-        const rowDiv = document.createElement('div');
-        rowDiv.className = 'row-container';
+      for (let c = 1; c <= COLS; c++) {
+        const colDiv = document.createElement('div');
+        colDiv.className = 'column-container';
 
         const label = document.createElement('div');
-        label.className = 'row-label';
-        label.textContent = `${r}行`;
-        rowDiv.appendChild(label);
-
-        if (r === 4) {
-          const teacherDesk = document.createElement('div');
-          teacherDesk.className = 'teacher-desk';
-          teacherDesk.textContent = '教卓';
-          rowDiv.appendChild(teacherDesk);
-        }
+        label.className = 'column-label';
+        label.textContent = `${c}列`;
+        colDiv.appendChild(label);
 
         const seatsDiv = document.createElement('div');
-        seatsDiv.className = 'row-seats';
+        seatsDiv.className = 'column-seats';
 
-        const cols = (r === 1 || r === 7) ? 5 : 6;
-
-        for (let c = 1; c <= cols; c++) {
+        for (let r = 1; r <= ROWS; r++) {
           const seat = document.createElement('div');
-          seat.className = 'seat';
-          seat.dataset.row = r;
-          seat.dataset.col = c;
-          seat.textContent = '';
+          
+          // 左右両端（1列目・7列目）の最後尾（6行目）は空席マスとして描画
+          if ((c === 1 || c === 7) && r === 6) {
+            seat.className = 'seat empty';
+          } else {
+            seat.className = 'seat';
+            seat.dataset.col = c;
+            seat.dataset.row = r;
+          }
           seatsDiv.appendChild(seat);
         }
 
-        rowDiv.appendChild(seatsDiv);
-        classroomEl.appendChild(rowDiv);
+        colDiv.appendChild(seatsDiv);
+        classroomEl.appendChild(colDiv);
       }
     }
 
-    function getAllSeatElements() {
-      return Array.from(document.querySelectorAll('.seat'));
+    function getAllValidSeatElements() {
+      return Array.from(document.querySelectorAll('.seat:not(.empty)'));
     }
 
     async function drawAllSeats() {
@@ -233,26 +228,24 @@
       resetSeats();
 
       try {
-        // GASから条件クリア済みの配置データを受け取る
         const response = await fetch(GAS_WEB_APP_URL);
         const placementData = await response.json();
 
         drawBtn.textContent = '抽選中...';
 
-        // 位置の対応付けマップを作成
         const seatMap = new Map();
         placementData.forEach(item => {
-          seatMap.set(`${item.row}-${item.col}`, item.number);
+          seatMap.set(`${item.col}-${item.row}`, item.number);
         });
 
-        const seats = getAllSeatElements();
+        const seats = getAllValidSeatElements();
 
-        // アニメーション表示
+        // ドラムロールのようなシャッフルアニメーション表示
         for (const seat of seats) {
           seat.classList.add('active');
-          const r = seat.dataset.row;
           const c = seat.dataset.col;
-          const targetNum = seatMap.get(`${r}-${c}`);
+          const r = seat.dataset.row;
+          const targetNum = seatMap.get(`${c}-${r}`);
 
           for (let i = 0; i < 4; i++) {
             seat.textContent = TOTAL_NUMBERS[Math.floor(Math.random() * TOTAL_NUMBERS.length)];
@@ -265,7 +258,7 @@
         }
 
       } catch (error) {
-        alert("データの取得に失敗しました。GASのURLや公開設定を確認してください。");
+        alert("データの取得に失敗しました。GASのURLや公開設定（全員）を確認してください。");
         console.error(error);
       } finally {
         isDrawing = false;
@@ -276,7 +269,7 @@
 
     function resetSeats() {
       if (isDrawing) return;
-      const seats = getAllSeatElements();
+      const seats = getAllValidSeatElements();
       seats.forEach(s => {
         s.textContent = '';
         s.classList.remove('active');
