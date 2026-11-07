@@ -49,7 +49,7 @@
       align-items: center;
     }
 
-    /* 教室レイアウト（横方向に7列配置） */
+    /* 教室レイアウト（左右7列） */
     .classroom {
       display: flex;
       gap: 12px;
@@ -95,7 +95,7 @@
       user-select: none;
     }
 
-    /* 両端最後尾の空席枠 */
+    /* 空席マス */
     .seat.empty {
       border: 2px dashed #e2e8f0;
       background-color: #f8fafc;
@@ -171,7 +171,7 @@
 
   <script>
     // ★発行したご自身のGASウェブアプリURLに書き換えてください★
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbybhuIgHVMsb0EdQC1nS3cmgRjthK9I3PmWhYrFlG65ihLagvsEXRJz60FPFZFhs4w/exec";
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwwttH4mGcoKQ8Mdc_o-yzakCk3cZ5BFVixZ51wINi3kgph3w_gMlTLtN4Grc9N0aw/exec";
 
     const COLS = 7;
     const ROWS = 6;
@@ -198,7 +198,7 @@
         for (let r = 1; r <= ROWS; r++) {
           const seat = document.createElement('div');
           
-          // 左右両端（1列目・7列目）の最後尾（6行目）は空席マスとして描画
+          // 両端（1列目・7列目）の最後尾（6行目）は空席として表示
           if ((c === 1 || c === 7) && r === 6) {
             seat.className = 'seat empty';
           } else {
@@ -240,7 +240,7 @@
 
         const seats = getAllValidSeatElements();
 
-        // ドラムロールのようなシャッフルアニメーション表示
+        // シャッフルアニメーション表示
         for (const seat of seats) {
           seat.classList.add('active');
           const c = seat.dataset.col;
